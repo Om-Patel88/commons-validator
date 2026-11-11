@@ -81,6 +81,39 @@ The required Java version is found in the `pom.xml` as the `maven.compiler.sourc
 
 From a command shell, run `mvn` without arguments to invoke the default Maven goal to run all tests and checks.
 
+### Step by step
+
+1. Install a JDK (8 or newer, CI runs 8 through 27) and Maven 3.9 or newer (the parent POM enforces 3.9).
+   Check both are on your `PATH`:
+
+   ```
+   java -version
+   mvn -version
+   ```
+
+2. Get the code:
+
+   ```
+   git clone https://github.com/apache/commons-validator.git
+   cd commons-validator
+   ```
+
+3. Compile and run the unit tests:
+
+   ```
+   mvn clean test
+   ```
+
+   The build ends with `BUILD SUCCESS` and a `Tests run: ..., Failures: 0, Errors: 0` summary.
+   Per-class results are written to `target/surefire-reports/`.
+
+4. To build the jar as well, run `mvn clean package`. The jar ends up in `target/`.
+
+5. To run everything the maintainers run before a pull request (tests plus RAT, japicmp,
+   Checkstyle, SpotBugs, PMD and Javadoc), run plain `mvn`. This takes a few minutes longer.
+
+The first build downloads Maven plugins and dependencies, so it needs internet access.
+
 Contributing
 ------------
 
