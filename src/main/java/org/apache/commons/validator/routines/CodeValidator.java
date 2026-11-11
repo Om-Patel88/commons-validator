@@ -245,7 +245,11 @@ public final class CodeValidator implements Serializable {
             }
         }
         // check the length (must be done after validate as that can change the code)
-        if (minLength >= 0 && code.length() < minLength || maxLength >= 0 && code.length() > maxLength) {
+        // a negative min/max length means that limit isn't set
+        final int length = code.length();
+        final boolean tooShort = minLength >= 0 && length < minLength;
+        final boolean tooLong = maxLength >= 0 && length > maxLength;
+        if (tooShort || tooLong) {
             return null;
         }
         // validate the check digit
