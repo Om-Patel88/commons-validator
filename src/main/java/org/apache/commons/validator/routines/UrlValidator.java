@@ -359,6 +359,18 @@ public class UrlValidator implements Serializable {
     }
 
     /**
+     * Checks whether a scheme may be used with this validator. Every scheme is
+     * allowed when ALLOW_ALL_SCHEMES is set, otherwise it has to be one of the
+     * configured schemes (compared case-blind).
+     *
+     * @param scheme The scheme to check, not null.
+     * @return true if the scheme is allowed.
+     */
+    private boolean isSchemeAllowed(final String scheme) {
+        return isOn(ALLOW_ALL_SCHEMES) || allowedSchemes.contains(scheme.toLowerCase(Locale.ENGLISH));
+    }
+
+    /**
      * <p>Checks if a field has a valid URL address.</p>
      *
      * Note that the method calls #isValidAuthority()
@@ -556,12 +568,21 @@ public class UrlValidator implements Serializable {
      * @return true if valid.
      */
     protected boolean isValidScheme(final String scheme) {
-        if (scheme == null || !SCHEME_PATTERN.matcher(scheme).matches()
-                || isOff(ALLOW_ALL_SCHEMES) && !allowedSchemes.contains(scheme.toLowerCase(Locale.ENGLISH))) {
+        if (!isWellFormedScheme(scheme) || !isSchemeAllowed(scheme)) {
             return false;
         }
 
         return true;
+    }
+
+    /**
+     * Checks that the scheme is not null and follows the scheme syntax from RFC 3986.
+     *
+     * @param scheme The scheme to check.
+     * @return true if the scheme is syntactically valid.
+     */
+    private boolean isWellFormedScheme(final String scheme) {
+        return scheme != null && SCHEME_PATTERN.matcher(scheme).matches();
     }
 
 }
