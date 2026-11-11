@@ -165,64 +165,64 @@ public class InetAddressValidator implements Serializable {
         if (inet6Address.startsWith(":") && !startsWithCompressed || endsWithSep && !endsWithCompressed) {
             return false;
         }
-        String[] octets = inet6Address.split(":");
+        String[] hexGroups = inet6Address.split(":");
         if (containsCompressedZeroes) {
-            final List<String> octetList = new ArrayList<>(Arrays.asList(octets));
+            final List<String> hexGroupList = new ArrayList<>(Arrays.asList(hexGroups));
             if (endsWithCompressed) {
                 // String.split() drops ending empty segments
-                octetList.add("");
-            } else if (startsWithCompressed && !octetList.isEmpty()) {
-                octetList.remove(0);
+                hexGroupList.add("");
+            } else if (startsWithCompressed && !hexGroupList.isEmpty()) {
+                hexGroupList.remove(0);
             }
-            octets = octetList.toArray(new String[0]);
+            hexGroups = hexGroupList.toArray(new String[0]);
         }
-        if (octets.length > IPV6_MAX_HEX_GROUPS) {
+        if (hexGroups.length > IPV6_MAX_HEX_GROUPS) {
             return false;
         }
-        int validOctets = 0;
-        int emptyOctets = 0; // consecutive empty chunks
-        for (int index = 0; index < octets.length; index++) {
-            final String octet = octets[index];
-            if (GenericValidator.isBlankOrNull(octet)) {
-                emptyOctets++;
-                if (emptyOctets > 1) {
+        int validHexGroups = 0;
+        int emptyHexGroups = 0; // consecutive empty chunks
+        for (int index = 0; index < hexGroups.length; index++) {
+            final String hexGroup = hexGroups[index];
+            if (GenericValidator.isBlankOrNull(hexGroup)) {
+                emptyHexGroups++;
+                if (emptyHexGroups > 1) {
                     return false;
                 }
             } else {
-                emptyOctets = 0;
+                emptyHexGroups = 0;
                 // Is last chunk an IPv4 address?
-                if (index == octets.length - 1 && octet.contains(".")) {
-                    if (!isValidInet4Address(octet)) {
+                if (index == hexGroups.length - 1 && hexGroup.contains(".")) {
+                    if (!isValidInet4Address(hexGroup)) {
                         return false;
                     }
-                    validOctets += 2;
+                    validHexGroups += 2;
                     continue;
                 }
-                if (octet.length() > IPV6_MAX_HEX_DIGITS_PER_GROUP) {
+                if (hexGroup.length() > IPV6_MAX_HEX_DIGITS_PER_GROUP) {
                     return false;
                 }
                 // Only ASCII hex digits are valid. Integer.parseInt(_, 16) also tolerates a leading sign
                 // and the non-ASCII Unicode digits that Character.digit maps to 0-15 (for example the
                 // fullwidth and Arabic-Indic forms), none of which belong in an IPv6 hex group.
-                for (int n = 0; n < octet.length(); n++) {
-                    final char ch = octet.charAt(n);
+                for (int n = 0; n < hexGroup.length(); n++) {
+                    final char ch = hexGroup.charAt(n);
                     if ((ch < '0' || ch > '9') && (ch < 'A' || ch > 'F') && (ch < 'a' || ch > 'f')) {
                         return false;
                     }
                 }
-                int octetInt = 0;
+                int hexGroupValue = 0;
                 try {
-                    octetInt = Integer.parseInt(octet, BASE_16);
+                    hexGroupValue = Integer.parseInt(hexGroup, BASE_16);
                 } catch (final NumberFormatException e) {
                     return false;
                 }
-                if (octetInt < 0 || octetInt > MAX_UNSIGNED_SHORT) {
+                if (hexGroupValue < 0 || hexGroupValue > MAX_UNSIGNED_SHORT) {
                     return false;
                 }
             }
-            validOctets++;
+            validHexGroups++;
         }
-        if (validOctets > IPV6_MAX_HEX_GROUPS || validOctets < IPV6_MAX_HEX_GROUPS && !containsCompressedZeroes) {
+        if (validHexGroups > IPV6_MAX_HEX_GROUPS || validHexGroups < IPV6_MAX_HEX_GROUPS && !containsCompressedZeroes) {
             return false;
         }
         return true;
