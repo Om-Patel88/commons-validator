@@ -429,39 +429,14 @@ public class UrlValidator implements Serializable {
             return false;
         }
 
-        // We have to process IPV6 separately because that is parsed in a different group
-        final String ipv6 = authorityMatcher.group(PARSE_AUTHORITY_IPV6);
-        if (ipv6 != null) {
-            final InetAddressValidator inetAddressValidator = InetAddressValidator.getInstance();
-            if (!inetAddressValidator.isValidInet6Address(ipv6)) {
-                return false;
-            }
-        } else {
-            final String hostLocation = authorityMatcher.group(PARSE_AUTHORITY_HOST_IP);
-            // check if authority is hostname or IP address:
-            // try a hostname first since that's much more likely
-            if (!domainValidator.isValid(hostLocation)) {
-                // try an IPv4 address
-                final InetAddressValidator inetAddressValidator = InetAddressValidator.getInstance();
-                if (!inetAddressValidator.isValidInet4Address(hostLocation)) {
-                    // isn't IPv4, so the URL is invalid
-                    return false;
-                }
-            }
+        if (!isValidHost(authorityMatcher)) {
+            return false;
         }
 
         // the port is captured in the same group regardless of host form, so it must be
         // range checked for a bracketed IPv6 host too, not just the hostname/IPv4 branch
-        final String port = authorityMatcher.group(PARSE_AUTHORITY_PORT);
-        if (!GenericValidator.isBlankOrNull(port)) {
-            try {
-                final int iPort = Integer.parseInt(port);
-                if (iPort < 0 || iPort > MAX_UNSIGNED_16_BIT_INT) {
-                    return false;
-                }
-            } catch (final NumberFormatException nfe) {
-                return false; // this can happen for big numbers
-            }
+        if (!isValidPort(authorityMatcher.group(PARSE_AUTHORITY_PORT))) {
+            return false;
         }
 
         final String extra = authorityMatcher.group(PARSE_AUTHORITY_EXTRA);
@@ -484,6 +459,26 @@ public class UrlValidator implements Serializable {
         }
 
         return isOff(NO_FRAGMENTS);
+    }
+
+    /**
+     * Checks the host part of an authority that already matched AUTHORITY_PATTERN.
+     * A bracketed IPv6 literal has its own group and is checked as an IPv6 address.
+     * Anything else has to be a valid host name, or failing that an IPv4 address.
+     *
+     * @param authorityMatcher the authority matcher, after a successful match.
+     * @return true if the host is valid.
+     */
+    private boolean isValidHost(final Matcher authorityMatcher) {
+        final InetAddressValidator inetAddressValidator = InetAddressValidator.getInstance();
+        // We have to process IPV6 separately because that is parsed in a different group
+        final String ipv6 = authorityMatcher.group(PARSE_AUTHORITY_IPV6);
+        if (ipv6 != null) {
+            return inetAddressValidator.isValidInet6Address(ipv6);
+        }
+        final String hostLocation = authorityMatcher.group(PARSE_AUTHORITY_HOST_IP);
+        // try a hostname first since that's much more likely, then fall back to IPv4
+        return domainValidator.isValid(hostLocation) || inetAddressValidator.isValidInet4Address(hostLocation);
     }
 
     /**
@@ -516,6 +511,25 @@ public class UrlValidator implements Serializable {
         }
 
         return true;
+    }
+
+    /**
+     * Checks the optional port of an authority. No port at all is fine, otherwise
+     * it has to be a number from 0 to 65535.
+     *
+     * @param port the port group of the authority, may be null or empty.
+     * @return true if there is no port or the port is in range.
+     */
+    private boolean isValidPort(final String port) {
+        if (GenericValidator.isBlankOrNull(port)) {
+            return true;
+        }
+        try {
+            final int iPort = Integer.parseInt(port);
+            return iPort >= 0 && iPort <= MAX_UNSIGNED_16_BIT_INT;
+        } catch (final NumberFormatException nfe) {
+            return false; // this can happen for big numbers
+        }
     }
 
     /**
